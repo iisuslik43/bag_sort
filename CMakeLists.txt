@@ -1,8 +1,6 @@
-cmake_minimum_required(VERSION 2.8)
-project(test)
+project(BAG)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -std=c++11 -lgtest_main -lgtest -lpthread")
-include_directories(../)
+set(CMAKE_CXX_STANDARD 14)
 
-set(SOURCE_FILES test.cpp ../headers.cpp ../writing.cpp ../config.cpp)
-add_executable(test ${SOURCE_FILES})
+set(SOURCE_FILES main.cpp headers.cpp headers.h config.cpp config.h writing.h writing.cpp)
+add_executable(BAG ${SOURCE_FILES})

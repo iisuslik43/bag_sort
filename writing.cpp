@@ -7,7 +7,6 @@ using namespace std;
 
 void write_data(Header& h, std::ifstream& in, std::ofstream& out){
     in.seekg(h.data_begin, ios::beg);
-    out.write((char*)&h.data_len, sizeof(int32_t));
     for(int32_t i = 0; i < h.data_len; i++){
         int8_t c;
         in.read((char*)&c, sizeof(int8_t));
@@ -18,7 +17,6 @@ void write_data(Header& h, std::ifstream& in, std::ofstream& out){
 void write_index_data(Index_data& idh, ifstream& in, ofstream& out){
     int32_t n = idh.data.size();
     n *= 12;
-    out.write((char*)&n, sizeof(int32_t));
     n/=12;
     for(int32_t i = 0; i < n; i++){
         out.write((char*)&idh.data[i].first.first, sizeof(uint32_t));
@@ -30,7 +28,6 @@ void write_index_data(Index_data& idh, ifstream& in, ofstream& out){
 void write_chunk_info_data(Chunk_info& cih, ifstream& in, ofstream& out){
     int32_t n = cih.data.size();
     n *= 8;
-    out.write((char*)&n, sizeof(int32_t));
     n/=8;
     for(int32_t i = 0; i < cih.data.size(); i++){
         out.write((char*)&cih.data[i].first, sizeof(int32_t));
@@ -43,7 +40,6 @@ void writing_chunk(Chunk& ch, std::ifstream& in, std::ofstream& out, std::map<in
         ch.compression = "bz2";//TODO
     ifstream unarch(ch.unarch_file, ios::binary);
     out << ch;
-    out.write((char*)&ch.data_len, sizeof(int32_t));
     int32_t pos = 0;
     for(int i = 0; i < ch.connections_info.size(); i++){
         if(ch.connections_to_write[ch.connections_info[i].conn]){
@@ -64,7 +60,10 @@ void writing_chunk(Chunk& ch, std::ifstream& in, std::ofstream& out, std::map<in
             out << mh;
             ch.connections_info[i].data[j].second = pos;
             pos += mh.all_size();
-            write_data(mh, in, out);
+            if(ch.compression == "bz2")
+                write_data(mh, unarch, out);
+            else
+                write_data(mh, in, out);
         }
     }
     for(int i = 0; i < ch.connections_info.size(); i++){
@@ -74,6 +73,9 @@ void writing_chunk(Chunk& ch, std::ifstream& in, std::ofstream& out, std::map<in
 }
 
 void writingBag(std::vector<Chunk> chunks, Bag_header bh, Config conf, std::ifstream& in, std::ofstream& out){
+    string f = "#ROSBAG V2.0\n";
+    for(int i = 0; i < 13; i++)
+        out.write(&f[i],sizeof(char));
     out << bh;
     cout << bh << endl;
     for(int i = 0; i < 4027; i++){
@@ -100,7 +102,7 @@ void writingBag(std::vector<Chunk> chunks, Bag_header bh, Config conf, std::ifst
     }
     for(int i = 0; i < conf.unique_connections.size(); i++){
         if(conf.taken[conf.unique_connections[i].conn]){
-            out << conf.unique_connections[i].conn;
+            out << conf.unique_connections[i];
             write_data(conf.unique_connections[i], in, out);
         }
     }
@@ -115,7 +117,6 @@ void read_BAG(Config& conf, std::vector<Chunk>& chunks, Bag_header& bh, std::ifs
     for (int i = 0; i < 13; i++) {
         int8_t first;
         in.read((char *) &first, sizeof(int8_t));
-        out.write((char *) &first, sizeof(int8_t));
         cout << first;
     }
 
@@ -129,10 +130,12 @@ void read_BAG(Config& conf, std::vector<Chunk>& chunks, Bag_header& bh, std::ifs
         cout << ch;
         if (ch.compression == "bz2") {
             cout << "We have compressed chunk!!!" << endl;
-            ch.unarch_file = "files_for_bag/chunk" + to_string(chunks.size());
+            ch.unarch_file = "chunk" + to_string(chunks.size());
             ofstream arch((ch.unarch_file + ".bz2"), ios::binary);
             write_data(ch, in, arch);
-            string command = "bunzip " + ch.unarch_file + ".bz2";
+            string command = "bunzip -d " + ch.unarch_file + ".bz2";
+            system(command.c_str());
+            command = "rm " + ch.unarch_file + ".bz2";
             system(command.c_str());
         }
         ch.connections_to_write = conf.taken;

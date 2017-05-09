@@ -65,6 +65,7 @@ void Config::parseChunk(Chunk& ch, ifstream& in){
         else{
             ch.connections_info.erase(ch.connections_info.begin() + i--);
             ch.info.count--;
+            ch.info.data_len -= 8;
         }
 
     }

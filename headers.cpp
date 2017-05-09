@@ -198,6 +198,7 @@ std::ofstream& operator<<(std::ofstream& out, Chunk_info& cih){
 
     s = "count=";
     write_l(s, cih.count, out);
+    out.write((char*)&cih.data_len, sizeof(int32_t));
     return out;
 }
 
@@ -261,6 +262,7 @@ std::ofstream& operator<<(std::ofstream& out, Index_data& idh){
     write_l(s, idh.conn, out);
     s = "count=";
     write_l(s, idh.count, out);
+    out.write((char*)&idh.data_len, sizeof(int32_t));
     return out;
 }
 
@@ -316,6 +318,7 @@ std::ofstream& operator<<(std::ofstream& out, Connection& ch){
     s = "topic=";
     s += ch.topic;
     write_string(s, out);
+    out.write((char*)&ch.data_len, sizeof(int32_t));
     return out;
 }
 
@@ -439,6 +442,7 @@ std::ofstream& operator<<(std::ofstream& out, Chunk& ch){
     write_string(s, out);
     s = "size=";
     write_l(s, ch.size, out);
+    out.write((char*)&ch.data_len, sizeof(int32_t));
     return out;
 }
 
@@ -486,5 +490,6 @@ std::ofstream& operator<<(std::ofstream& out, Message_header& mh){
     write_l(s, mh.time.first, out);
     s="";
     write_l(s, mh.time.second, out);
+    out.write((char*)&mh.data_len, sizeof(int32_t));
     return out;
 }

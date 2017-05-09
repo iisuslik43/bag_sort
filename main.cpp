@@ -15,12 +15,13 @@ int main(int argc, char* argv[])
     cout << "\n=================================\nStart Writing" << endl;
     cout << "=================================\n" << endl;
     cout << "Writing correct messages:\n\n";
-
+    cout << chunks[0].header_len << endl;
     Bag_header bh_other = bh;
     vector<Chunk> chunks_other = chunks;
 
     conf.correct_conditions = true;
     conf.parseBag(chunks, bh, in);
+    cout << chunks[0].header_len << endl;
     writingBag(chunks, bh, conf, in, out);
 
     cout << "\n=================================\n" << endl;
