@@ -188,10 +188,12 @@ std::ofstream& operator<<(std::ofstream& out, Chunk_info& cih){
 
     s = "start_time=";
     write_l(s, cih.start_time.first, out);
+    s="";
     write_l(s, cih.start_time.second, out);
 
     s = "end_time=";
     write_l(s, cih.end_time.first, out);
+    s="";
     write_l(s, cih.end_time.second, out);
 
     s = "count=";
@@ -482,6 +484,7 @@ std::ofstream& operator<<(std::ofstream& out, Message_header& mh){
     write_l(s, mh.conn, out);
     s = "time=";
     write_l(s, mh.time.first, out);
+    s="";
     write_l(s, mh.time.second, out);
     return out;
 }

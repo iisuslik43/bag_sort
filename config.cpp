@@ -27,26 +27,19 @@ void comp_time(pair<uint32_t, uint32_t>& t, pair<uint32_t, uint32_t>& min, pair<
 
 void Config::parseChunk(Chunk& ch, ifstream& in){
     ifstream unarch(ch.unarch_file, ios::binary);
-    //cout << endl << "NEXT"  << " " << ch.connections_info.size() << endl;
     ch.data_len = 0;
     for(int32_t i = 0; i < ch.connections_info.size(); i++){
         int32_t id = ch.connections_info[i].conn;
-        //cout << id << "|";
         if(take[id] || !correct_conditions) {
-            if (!taken[id]) {
-                taken[id] = true;
-                ch.connections_to_write[id] = true;
-                ch.data_len += unique_connections[id].all_size();
-            }
-            //cout << "Parse messages from " << id << " connection" << endl;
             Index_data& idh = ch.connections_info[i];
             ch.info.start_time.first = UINT32_MAX;
             ch.info.start_time.second = UINT32_MAX;
             ch.info.end_time.first = 0;
             ch.info.end_time.second = 0;
             for(size_t j = 0; j < idh.data.size(); j++){
-                if(checkTime(idh.data[j].first)^ (!correct_conditions) || (take[id] && !correct_conditions)){
-                    comp_time(idh.data[j].first, start_time, end_time);
+                if((checkTime(idh.data[j].first)^ (!correct_conditions)) || (take[id] && !correct_conditions)){
+
+                    comp_time(idh.data[j].first, ch.info.start_time, ch.info.end_time);
                     if(ch.compression == "bz2"){
                         unarch.seekg(idh.data[j].second, ios::beg);
                         ch.data_len += skip_header(unarch);
@@ -63,6 +56,11 @@ void Config::parseChunk(Chunk& ch, ifstream& in){
                     ch.info.data[get_index_of_id(ch.info.data, id)].second--;
                 }
             }
+            if (!taken[id] && idh.data.size()) {
+                taken[id] = true;
+                ch.connections_to_write[id] = true;
+                ch.data_len += unique_connections[id].all_size();
+            }
         }
         else{
             ch.connections_info.erase(ch.connections_info.begin() + i--);
@@ -71,14 +69,14 @@ void Config::parseChunk(Chunk& ch, ifstream& in){
 
     }
     for(size_t i = 0; i < ch.info.data.size(); i++){
-        if(take[ch.info.data[i].first] || !correct_conditions)
+        if(ch.info.data[i].second == 0)
             ch.info.data.erase(ch.info.data.begin() + i--);
     }
     ch.size = ch.data_len;
 }
 
 bool Config::checkTime(std::pair<uint32_t, uint32_t > time){
-    return (time >= start_time) && (time <= end_time);
+    return ((time >= start_time) && (time <= end_time));//TODO
 }
 
 int64_t string_to_long_long(string s){
@@ -93,6 +91,8 @@ int64_t string_to_long_long(string s){
 
 void Config::parseTime(std::string time){
     vector<string > times(4);
+    if(time.empty())
+        return;
     int ind = 0;
     string str_start_time, str_end_time;
     for(int i = 1; i < time.size()-1; i++){
@@ -109,7 +109,7 @@ void Config::parseTime(std::string time){
     end_time.second = (uint32_t)string_to_long_long(times[3]);
 }
 
-Config::Config(int argc, char** argv){
+Config::Config(int argc, char** argv):start_time({0,0}),end_time({UINT32_MAX, UINT32_MAX}),topic_regexp(".*"){
     for(int i = 1; i < argc; i++){
         if(!strcmp(argv[i], "--time")){
             parseTime(argv[++i]);
@@ -156,7 +156,6 @@ int32_t Config::parseConnections(){
         taken[id] = false;
         take[id] = parseConnection(i->second) ^ (!correct_conditions);
         if(take[id]){
-            //cout << id << " " << i->second.topic << endl;
             conn_count++;
         }
     }
@@ -165,14 +164,25 @@ int32_t Config::parseConnections(){
 
 void Config::parseBag(std::vector<Chunk>& chunks, Bag_header& bh, std::ifstream& in){
     bh.conn_count = parseConnections();
+    bh.conn_count = 0;
     int64_t chunks_size = 0;
     for(int i = 0; i < chunks.size(); i++){
         Chunk& ch = chunks[i];
         parseChunk(chunks[i], in);
+        if(chunks[i].size == 0){
+            chunks.erase(chunks.begin() + i--);
+            continue;
+        }
         chunks_size += ch.all_size();
         for(int32_t j = 0; j < ch.connections_info.size(); j++){
             chunks_size += chunks[i].connections_info[j].all_size();
         }
     }
+    for(auto it = unique_connections.begin(); it!= unique_connections.end();++it){
+        if(taken[it->first])
+            bh.conn_count++;
+    }
     bh.index_pos = 13 + chunks_size + bh.all_size();
+    bh.chunk_count = chunks.size();
 }
+

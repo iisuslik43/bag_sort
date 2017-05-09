@@ -40,6 +40,9 @@ int8_t get_op(std::ifstream& in);
 void print_op(int8_t op);
 int64_t skip_header(std::ifstream& in);
 void print_time(std::pair<uint32_t, uint32_t >, std::ostream& out);
+void write_string(std::string& s, std::ofstream& out);
+void write_l(std::string& s, int32_t  f, std::ofstream& out);
+void write_ll(std::string& s, int64_t f, std::ofstream& out);
 //--------------------------
 
 class Message_header:public Header
@@ -108,7 +111,7 @@ public:
     {
         int64_t in_now = in.tellg();
         in.seekg(data_begin, std::ios::beg);
-        for(size_t i = 0; i < data_len; i++)
+        for(int32_t i = 0; i < data_len; i++)
         {
             int8_t next;
             in.read((char*)& next, sizeof(int8_t));

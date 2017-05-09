@@ -14,7 +14,6 @@ public:
     bool parseConnection(Connection& ch);
     bool checkTime(std::pair<uint32_t, uint32_t > time);
     void parseChunk(Chunk& ch, std::ifstream& in);
-
     void parseBag(std::vector<Chunk>& chunks, Bag_header& bh, std::ifstream& in);
 
     std::pair<uint32_t, uint32_t > start_time;
@@ -29,7 +28,5 @@ public:
     bool correct_conditions;
 };
 
-int32_t get_index_of_id(std::vector<std::pair<int32_t, int32_t>>& data);
-int64_t string_to_long_long(std::string s);
-
+int64_t string_to_long_long(std::string s);;
 #endif //BAG2_CONFIG_H

@@ -51,7 +51,6 @@ void writing_chunk(Chunk& ch, std::ifstream& in, std::ofstream& out, std::map<in
             write_data(unique_connections[ch.connections_info[i].conn], in, out);
             pos += unique_connections[ch.connections_info[i].conn].all_size();
         }
-        cout << "start writing " << ch.connections_info[i].data.size() << " messages" << endl;
         for(int j = 0; j < ch.connections_info[i].data.size(); j++){
             Message_header mh;
             if(ch.compression == "bz2"){
@@ -65,10 +64,8 @@ void writing_chunk(Chunk& ch, std::ifstream& in, std::ofstream& out, std::map<in
             out << mh;
             ch.connections_info[i].data[j].second = pos;
             pos += mh.all_size();
-            //cout << mh;
             write_data(mh, in, out);
         }
-        cout << "written all good message" << endl;
     }
     for(int i = 0; i < ch.connections_info.size(); i++){
         out << ch.connections_info[i];
@@ -78,14 +75,13 @@ void writing_chunk(Chunk& ch, std::ifstream& in, std::ofstream& out, std::map<in
 
 void writingBag(std::vector<Chunk> chunks, Bag_header bh, Config conf, std::ifstream& in, std::ofstream& out){
     out << bh;
-    cout << bh;
+    cout << bh << endl;
     for(int i = 0; i < 4027; i++){
         char t = ' ';
         out.write(&t, 1);
     }
     int64_t size_of_file = 13 +  bh.all_size();
     for(int i = 0; i < chunks.size(); i++){
-        cout << chunks[i];
         chunks[i].info.chunk_pos = size_of_file;
         size_of_file += chunks[i].all_size();
         if(chunks[i].compression == "bz2"){
@@ -101,11 +97,9 @@ void writingBag(std::vector<Chunk> chunks, Bag_header bh, Config conf, std::ifst
         }
         else
             writing_chunk(chunks[i], in, out, conf.unique_connections);
-
-        //cout << "data_len = " << chunks[i].data_len << endl;
     }
     for(int i = 0; i < conf.unique_connections.size(); i++){
-        if(conf.take[conf.unique_connections[i].conn]){
+        if(conf.taken[conf.unique_connections[i].conn]){
             out << conf.unique_connections[i].conn;
             write_data(conf.unique_connections[i], in, out);
         }
@@ -113,5 +107,52 @@ void writingBag(std::vector<Chunk> chunks, Bag_header bh, Config conf, std::ifst
     for(int i = 0; i < chunks.size(); i++){
         out << chunks[i].info;
         write_chunk_info_data(chunks[i].info, in, out);
+    }
+}
+
+
+void read_BAG(Config& conf, std::vector<Chunk>& chunks, Bag_header& bh, std::ifstream& in, std::ofstream& out) {
+    for (int i = 0; i < 13; i++) {
+        int8_t first;
+        in.read((char *) &first, sizeof(int8_t));
+        out.write((char *) &first, sizeof(int8_t));
+        cout << first;
+    }
+
+
+    in >> bh;
+    cout << bh << endl;
+
+    while (get_op(in) == 5) {
+        Chunk ch;
+        in >> ch;
+        cout << ch;
+        if (ch.compression == "bz2") {
+            cout << "We have compressed chunk!!!" << endl;
+            ch.unarch_file = "files_for_bag/chunk" + to_string(chunks.size());
+            ofstream arch((ch.unarch_file + ".bz2"), ios::binary);
+            write_data(ch, in, arch);
+            string command = "bunzip " + ch.unarch_file + ".bz2";
+            system(command.c_str());
+        }
+        ch.connections_to_write = conf.taken;
+        in.seekg(ch.data_len, ios::cur);
+        while (in && get_op(in) == 4) {
+            Index_data idh;
+            in >> idh;
+            ch.connections_info.push_back(idh);
+        }
+        chunks.push_back(ch);
+    }
+
+    for (int32_t i = 0; i < bh.conn_count; i++) {
+        Connection c;
+        in >> c;
+        conf.unique_connections[c.conn] = c;
+        in.seekg(c.data_len, ios::cur);
+    }
+
+    for (int32_t i = 0; i < bh.chunk_count; i++) {
+        in >> chunks[i].info;
     }
 }
