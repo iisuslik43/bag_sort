@@ -9,6 +9,17 @@ using namespace std;
 
 
 //--------------------------
+
+void write_time(std::string s, std::pair<uint32_t, uint32_t > time, std::ofstream& out){
+    int32_t size = s.size() + 8;
+    out.write((char*)&size, sizeof(int32_t));
+    for(int i = 0; i < s.size(); i++){
+        out.write(&s[i], sizeof(char));
+    }
+    out.write((char*)&time.first, sizeof(uint32_t));
+    out.write((char*)&time.second, sizeof(uint32_t));
+}
+
 int8_t get_op(ifstream& in)
 {
 
@@ -96,7 +107,8 @@ void write_string(string& s, ofstream& out){
 
 void write_l(string& s, int32_t  f, ofstream& out){
     int32_t size = s.size() + 4;
-    out.write((char*)&size, sizeof(int32_t));
+    if(s != "")
+        out.write((char*)&size, sizeof(int32_t));
     for(int i = 0; i < s.size(); i++){
         out.write(&s[i], sizeof(char));
     }
@@ -187,14 +199,10 @@ std::ofstream& operator<<(std::ofstream& out, Chunk_info& cih){
     write_ll(s, cih.chunk_pos, out);
 
     s = "start_time=";
-    write_l(s, cih.start_time.first, out);
-    s="";
-    write_l(s, cih.start_time.second, out);
+    write_time(s, cih.start_time, out);
 
     s = "end_time=";
-    write_l(s, cih.end_time.first, out);
-    s="";
-    write_l(s, cih.end_time.second, out);
+    write_time(s, cih.end_time, out);
 
     s = "count=";
     write_l(s, cih.count, out);
@@ -487,9 +495,7 @@ std::ofstream& operator<<(std::ofstream& out, Message_header& mh){
     s = "conn=";
     write_l(s, mh.conn, out);
     s = "time=";
-    write_l(s, mh.time.first, out);
-    s="";
-    write_l(s, mh.time.second, out);
+    write_time(s, mh.time, out);
     out.write((char*)&mh.data_len, sizeof(int32_t));
     return out;
 }

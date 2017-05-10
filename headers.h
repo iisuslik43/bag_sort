@@ -40,6 +40,7 @@ int8_t get_op(std::ifstream& in);
 void print_op(int8_t op);
 int64_t skip_header(std::ifstream& in);
 void print_time(std::pair<uint32_t, uint32_t >, std::ostream& out);
+void write_time(std::string s, std::pair<uint32_t, uint32_t > time, std::ofstream& out);
 void write_string(std::string& s, std::ofstream& out);
 void write_l(std::string& s, int32_t  f, std::ofstream& out);
 void write_ll(std::string& s, int64_t f, std::ofstream& out);
