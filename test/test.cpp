@@ -2,6 +2,41 @@
 #include "../writing.h"
 #include <gtest/gtest.h>
 using namespace std;
+/*
+TEST(fuck, you){
+    char** options = new char*[7];
+    options[0] = const_cast<char*>("BAG");
+    options[1] = const_cast<char*>("-f");
+    options[2] = const_cast<char*>("../example.bag");
+    options[3] = const_cast<char*>("-c");
+    options[4] = const_cast<char*>("good");
+    options[5] = const_cast<char*>("-o");
+    options[6] = const_cast<char*>("bad");
+    Config conf(7, options);
+    delete[] options;
+    Bag_header bh;
+    vector<Chunk> chunks;
+    ifstream in(conf.in_filename, ios::binary);
+    ofstream out("fuck", ios::binary);
+    ifstream in2("fuck", ios::binary);
+    read_BAG(conf,chunks,bh,in,out);
+    conf.correct_conditions = true;
+    conf.parseBag(chunks, bh, in);
+    print_time(conf.start_time, cout);
+    print_time(conf.end_time, cout);
+    Index_data ch = chunks[0].connections_info[0];
+    //in >> ch;
+    out << ch;
+    write_index_data(ch, in, out);
+    //write_data(mh, in, out);
+    out.close();
+    in2.seekg(0, ios::end);
+    int32_t len = in2.tellg();
+    cout << len << " " << ch.all_size() << " " << ch.data.size();
+    system("rm fuck");
+}
+*/
+
 TEST(Smoke_Test, Empty_Conditions){
     char** options = new char*[7];
     options[0] = const_cast<char*>("BAG");
@@ -158,12 +193,12 @@ TEST(Smoke_Test, Compressed_chunk){
     ofstream out2("temp2", ios::binary);
     read_BAG(conf,chunks,bh,in,out);
     write_data(chunks[0], in, out_bz2);
+    out_bz2.close();
+    cout << chunks[0].data_len << " " << get_file_size("temp") << endl;
     system("bzip2 temp");
-    ifstream size("temp.bz2", ios::binary);
-    size.seekg(0, ios::end);
-    chunks[0].data_len = size.tellg();
+
+    chunks[0].data_len = get_file_size("temp.bz2");
     bh.index_pos = bh.all_size() + chunks[0].all_size();
-    size.close();
     string f = "#ROSBAG V2.0\n";
     for(int i = 0; i < 13; i++)
         out.write(&f[i],sizeof(char));
@@ -174,7 +209,6 @@ TEST(Smoke_Test, Compressed_chunk){
     }
     chunks[0].compression = "bz2";
     out << chunks[0];
-    system("cat temp.bz2 >> compr.bag");
     for(int i = 0; i < chunks[0].connections_info.size(); i++){
         out2 << chunks[0].connections_info[i];
         write_index_data(chunks[0].connections_info[i], in, out2);
@@ -189,7 +223,9 @@ TEST(Smoke_Test, Compressed_chunk){
     }
     out2.close();
     out.close();
-    system("cat temp2 >> compr.bag");
+    out_bz2.close();
+    system("cat temp2 >> temp.bz2");
+    system("cat temp.bz2 >> compr.bag");
     system("rm temp2");
     system("rm temp.bz2");
 }
@@ -199,7 +235,7 @@ TEST(Smoke_Test, Empty_Conditions2){
     char** options = new char*[7];
     options[0] = const_cast<char*>("BAG");
     options[1] = const_cast<char*>("-f");
-    options[2] = const_cast<char*>("../cmake-build-debug/lol");
+    options[2] = const_cast<char*>("compr.bag");
     options[3] = const_cast<char*>("-c");
     options[4] = const_cast<char*>("good");
     options[5] = const_cast<char*>("-o");
@@ -210,28 +246,14 @@ TEST(Smoke_Test, Empty_Conditions2){
     vector<Chunk> chunks;
     ifstream in(conf.in_filename, ios::binary);
     ofstream out(conf.out_filename_correct, ios::binary);
-    cout << "ss" << endl;
-    in.seekg(13, ios::beg);
-    print_op(get_op(in));
-    cout << skip_header(in) << endl;
-    print_op(get_op(in));
-    cout << skip_header(in) << endl;
-    print_op(get_op(in));
-    cout << skip_header(in) << endl;
-    /*
-    in.seekg(0, ios::beg);
     read_BAG(conf,chunks,bh,in,out);
     Bag_header first = bh;
-    cout << "ss" << endl;
     Bag_header bh_other = bh;
     vector<Chunk> chunks_other = chunks;
 
     conf.correct_conditions = true;
     conf.parseBag(chunks, bh, in);
-    cout << "ss" << endl;
     writingBag(chunks, bh, conf, in, out);
-    cout << "ss" << endl;
-    ASSERT_TRUE(bh.index_pos == first.index_pos);
     ASSERT_TRUE(bh.chunk_count == first.chunk_count);
     ASSERT_TRUE(bh.conn_count == first.conn_count);
     conf.correct_conditions = false;
@@ -240,5 +262,5 @@ TEST(Smoke_Test, Empty_Conditions2){
     writingBag(chunks_other, bh_other, conf, in, out);
     system("rm good");
     system("rm bad");
-    */
+
 }
